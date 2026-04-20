@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校園升學祈福 - 專屬扭蛋機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            /* 溫暖的祈福背景，防止大屏出現滾動條 */
+            background: radial-gradient(circle at center, #fff0f5 0%, #ffd1dc 100%);
+            overflow: hidden; 
+            user-select: none; /* 防止觸控螢幕反白文字 */
+            -webkit-user-select: none;
+        }
+
+        /* --- 扭蛋機立體質感 CSS --- */
+        .glass-dome {
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 60%, rgba(0,0,0,0.1) 100%);
+            box-shadow: inset -10px -10px 40px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .machine-base {
+            background: linear-gradient(to right, #e0e0e0 0%, #ffffff 20%, #ffffff 80%, #e0e0e0 100%);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .silver-trim {
+            background: linear-gradient(to bottom, #d4d4d4 0%, #f5f5f5 40%, #a3a3a3 100%);
+            border-top: 2px solid #fff;
+            border-bottom: 2px solid #888;
+        }
+
+        .chute {
+            background: linear-gradient(to bottom, #333 0%, #666 10%);
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .chute-flap {
+            background: linear-gradient(to bottom, #f5f5f5 0%, #a3a3a3 100%);
+            transform-origin: top;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* 扭蛋球的立體感 */
+        .capsule {
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.2), inset 5px 5px 15px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3);
+            position: absolute;
+        }
+
+        /* 旋鈕 */
+        .knob-container {
+            background: linear-gradient(135deg, #e0e0e0, #999);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2), inset 0 2px 2px #fff;
+        }
+        .knob-handle {
+            background: linear-gradient(to right, #ccc, #fff, #ccc);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* --- 動畫設定 --- */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            20% { transform: translate(-2px, -1px) rotate(-2deg); }
+            40% { transform: translate(-1px, 2px) rotate(1deg); }
+            60% { transform: translate(2px, 1px) rotate(0deg); }
+            80% { transform: translate(1px, -2px) rotate(2deg); }
+            100% { transform: translate(-1px, -1px) rotate(-1deg); }
+        }
+
+        @keyframes dropDown {
+            0% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+            50% { transform: translateY(20px) scale(1); opacity: 1; }
+            70% { transform: translateY(-10px); }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- 新增：對聯的直書樣式 --- */
+        .vertical-rl {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+        }
+
+        .couplet-bg {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border: 6px solid #facc15;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3), inset 0 0 15px rgba(0,0,0,0.4);
+        }
+
+        .animate-shake { animation: shake 0.3s infinite; }
+        .animate-drop { animation: dropDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .animate-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center">
+
+    <!-- 新增：左右對聯 -->
+    <div class="fixed left-8 top-1/2 -translate-y-1/2 couplet-bg text-yellow-300 px-4 py-8 rounded-lg z-0 hidden md:block">
+        <h2 class="vertical-rl text-5xl font-black tracking-[0.3em] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">金榜題名志願中</h2>
+    </div>
+    <div class="fixed right-8 top-1/2 -translate-y-1/2 couplet-bg text-yellow-300 px-4 py-8 rounded-lg z-0 hidden md:block">
+        <h2 class="vertical-rl text-5xl font-black tracking-[0.3em] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">妙筆生花才思湧</h2>
+    </div>
+
+    <!-- 頂部標題 (可根據學校名稱修改) -->
+    <h1 class="text-center font-black tracking-wider mb-8 drop-shadow-md">
+        <div class="text-4xl text-pink-500 mb-2 drop-shadow-sm">新北市立佳林國中</div>
+        <div class="text-6xl text-pink-600 drop-shadow-md">🏫 升學祈福專屬扭蛋機</div>
+    </h1>
+
+    <!-- 扭蛋機本體 -->
+    <div class="relative flex flex-col items-center">
+        
+        <!-- 機頂銀蓋 -->
+        <div class="w-48 h-8 rounded-t-[50%] silver-trim z-20 relative top-2"></div>
+
+        <!-- 玻璃圓頂 (內部裝滿扭蛋) -->
+        <div id="dome" class="w-80 h-80 rounded-full border-4 border-gray-100 glass-dome relative overflow-hidden z-10">
+            <!-- 內部的靜態扭蛋會由 JS 自動生成填滿 -->
+        </div>
+
+        <!-- 機身銀色腰帶 -->
+        <div class="w-80 h-6 silver-trim z-20 -mt-3 rounded-md"></div>
+
+        <!-- 機身底座 -->
+        <div class="w-72 h-72 machine-base rounded-b-3xl relative z-10 flex flex-col items-center pt-6">
+            
+            <!-- 投幣與旋鈕區 -->
+            <div class="w-28 h-28 rounded-xl silver-trim flex items-center justify-center p-2 mb-4">
+                <div id="knob" class="w-20 h-20 rounded-full knob-container relative flex items-center justify-center transition-transform duration-1000">
+                    <div class="w-16 h-4 rounded-sm knob-handle absolute"></div>
+                </div>
+            </div>
+
+            <!-- 掉落出口 -->
+            <div class="w-24 h-20 rounded-md chute relative overflow-hidden flex items-end justify-center pb-2">
+                <!-- 掉出來的扭蛋 (預設隱藏) -->
+                <div id="dispensed-capsule" class="w-14 h-14 capsule hidden absolute bottom-2 z-0"></div>
+                <!-- 出口擋片 -->
+                <div id="flap" class="w-full h-full absolute top-0 left-0 chute-flap z-10 rounded-md"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 大屏互動按鈕 -->
+    <button id="draw-btn" class="mt-10 px-16 py-6 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-4xl font-black rounded-full shadow-[0_10px_0_#be123c] active:shadow-[0_0px_0_#be123c] active:translate-y-[10px] transition-all hover:brightness-110">
+        點擊抽取專屬祝福
+    </button>
+    <p class="mt-4 text-gray-500 font-bold text-xl">剩餘扭蛋數量：<span id="remain-count">600</span> 顆</p>
+
+    <!-- 開獎結果彈出視窗 (極致還原實體卡片版) -->
+    <div id="result-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden z-50 flex flex-col items-center justify-center cursor-pointer" onclick="closeModal()">
+        
+        <!-- 數位版籤詩小卡 (比例與設計完全對應 A4 印刷卡片) -->
+        <div id="fortune-card" class="relative w-[90%] max-w-5xl aspect-[2/1] rounded-3xl flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-colors duration-300 overflow-hidden border-[12px] bg-white cursor-default" onclick="event.stopPropagation()">
+            
+            <!-- 內圈裝飾線 -->
+            <div id="card-inner-border" class="absolute inset-4 border-4 rounded-xl pointer-events-none opacity-40"></div>
+
+            <!-- 左上角編號標籤 -->
+            <div id="card-number-tag" class="absolute top-0 left-0 text-white font-black px-10 py-4 rounded-br-3xl text-5xl shadow-md tracking-wider z-10">
+                #01
+            </div>
+            
+            <!-- 左側 Q版圖示 (Emoji替代) -->
+            <div class="w-2/5 h-full flex flex-col items-center justify-center relative">
+                <div id="card-icon" class="text-[12rem] drop-shadow-2xl filter hover:scale-110 transition-transform duration-500 z-10">
+                    👨‍🏫
+                </div>
+            </div>
+            
+            <!-- 右側 標題與內文 -->
+            <div class="w-3/5 h-full flex flex-col justify-center pl-4 pr-16 relative z-10">
+                <h3 id="card-title" class="text-7xl font-black mb-8 tracking-widest text-gray-800 border-b-8 pb-4 border-black/10 inline-block w-max drop-shadow-sm">
+                    文采飛揚籤
+                </h3>
+                <p id="card-desc" class="text-5xl font-bold text-gray-700 leading-snug tracking-wide">
+                    筆下生花，靈感湧現，國文作文拿高分！
+                </p>
+            </div>
+        </div>
+
+        <!-- 畫面底部提示 -->
+        <p class="text-4xl font-bold text-white mt-12 animate-pulse bg-black/50 px-10 py-5 rounded-full border-2 border-white/20">
+            👉 請至籤詩架領取您的實體卡片 (點擊畫面任意處關閉)
+        </p>
+    </div>
+
+    <script>
+        // --- 1. 遊戲邏輯與資料初始化 ---
+        const TOTAL_NUMBERS = 60;
+        const MAX_COPIES = 10;
+        let capsulePool = [];
+
+        // 建立籤筒池：將 1~60 號各放入 10 顆
+        for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+            for (let j = 0; j < MAX_COPIES; j++) {
+                capsulePool.push(i);
+            }
+        }
+
+        // 新增：60首籤詩完整資料庫 (標題、內文、圖示、主題樣式)
+        const fortunesData = [
+            // 第一組：學神附體篇 (藍色系)
+            { title: "文采飛揚籤", desc: "筆下生花，靈感湧現，國文作文拿高分！", icon: "👨‍🏫", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "靈光乍現籤", desc: "數學算式一目了然，邏輯清晰，粗心退散！", icon: "💡", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "語感爆棚籤", desc: "英文單字過目不忘，文法閱讀一路暢通！", icon: "👽", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "實驗滿分籤", desc: "理化公式自動浮現，實驗邏輯無懈可擊！", icon: "🧑‍🔬", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "記憶吐司籤", desc: "歷史地理全進腦袋，大腦記憶體無限擴充！", icon: "🍞", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "細胞覺醒籤", desc: "生物概念全貫通，腦細胞戰鬥力 MAX！", icon: "🧬", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "無敵星星籤", desc: "考神附體！全科 All Pass，無所畏懼！", icon: "⭐", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "體能滿格籤", desc: "精神抖擻，體力充沛，衝刺到最後一秒鐘！", icon: "🔋", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "藝術爆發籤", desc: "創意無限，靈感如泉湧，展現獨特才華！", icon: "🎨", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            { title: "黑馬狂奔籤", desc: "潛力大爆發！你就是考場上最亮眼的黑馬！", icon: "🐴", themeClass: "border-blue-400 bg-blue-50", tagClass: "bg-blue-500", group: "🏆 第 1 組：學神附體篇" },
+            
+            // 第二組：考場幸運篇 (橘色系)
+            { title: "猜題必中籤", desc: "猶豫的選項，跟著直覺走，猜的通通對！", icon: "🔮", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "避開陷阱籤", desc: "陷阱題一眼看穿，火眼金睛絕不上當！", icon: "🐕", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "時間精算籤", desc: "作答行雲流水，配速完美，時間剛剛好！", icon: "⏳", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "完美發揮籤", desc: "實力 120% 完美發揮，今天的你無可挑剔！", icon: "⚾", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "文昌護體籤", desc: "文昌星君親自關照，考運順順利利！", icon: "👲", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "錦鯉附身籤", desc: "錦鯉帶來神仙好運，分數水漲船高！", icon: "🐟", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "考卷友善籤", desc: "題目剛好都是你有讀到的，運氣好到爆表！", icon: "📝", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "粗心怪退散籤", desc: "細心度滿分，不再因為看錯題目而扼腕！", icon: "🧹", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "檢查神眼籤", desc: "魔鬼藏在細節裡，檢查時能揪出所有錯誤！", icon: "🦉", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+            { title: "絕地反攻籤", desc: "遇到難題不慌張，冷靜化解，逆風翻盤！", icon: "🦋", themeClass: "border-orange-400 bg-orange-50", tagClass: "bg-orange-500", group: "🍀 第 2 組：考場幸運篇" },
+
+            // 第三組：暖心充能篇 (粉紅色系)
+            { title: "一夜好眠籤", desc: "睡眠品質絕佳，一覺到天亮，精神飽滿迎戰！", icon: "🐑", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "心如止水籤", desc: "告別焦慮，保持平平靜靜的強大力量！", icon: "🐸", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "快樂無壓籤", desc: "放下得失心，享受挑戰的過程，你是最棒的！", icon: "🎈", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "自信爆棚籤", desc: "相信自己，你比你想像中的還要強大太多！", icon: "🦁", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "腸胃乖乖籤", desc: "考場不鬧肚子，神清氣爽，舒舒服服應考！", icon: "😋", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "舒壓解憂籤", desc: "壓力全部釋放，輕裝上陣，腳步超輕盈！", icon: "🧸", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "專注結界籤", desc: "考場雜音退散，瞬間進入絕對專注領域！", icon: "🐹", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "毅力恆星籤", desc: "堅持到底就是勝利，終點就在眼前了！", icon: "🐢", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "笑容滿面籤", desc: "保持微笑，好運自然會被你吸引過來！", icon: "🌻", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+            { title: "滿滿愛心籤", desc: "充滿愛與支持，別怕，你不是一個人在戰鬥！", icon: "🫶", themeClass: "border-pink-400 bg-pink-50", tagClass: "bg-pink-500", group: "💖 第 3 組：暖心充能篇" },
+
+            // 第四組：台灣味諧音梗篇 (綠色系)
+            { title: "包中滿分籤", desc: "「包中」理想志願，金榜題名沒問題！", icon: "🥟", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "穩交好運籤", desc: "成績「穩蕉」發揮，絕不滑跤，穩穩拿分！", icon: "🍌", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "好彩頭籤", desc: "菜頭帶來「好彩頭」，逢考必勝好運來！", icon: "🥕", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "神明保柚籤", desc: "神明保「柚」，一切順心如意，考試平安！", icon: "🍈", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "旺旺來籤", desc: "好運「旺旺來」，分數節節高升擋不住！", icon: "🍍", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "節節高升籤", desc: "分數如雨後春筍，勢如破竹，不斷攀升！", icon: "🐼", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "旗開得勝籤", desc: "首戰告捷！一路過關斬將，所向披靡！", icon: "🐧", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "追分成功籤", desc: "每一分都牢牢抓住，順利達陣夢想學校！", icon: "🎫", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "牛氣沖天籤", desc: "氣勢如虹，勢不可擋，考場上你最牛！", icon: "🐮", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+            { title: "乖乖順利籤", desc: "機器不當機，腦袋不當機，一切都「乖乖」！", icon: "🟢", themeClass: "border-green-500 bg-green-50", tagClass: "bg-green-600", group: "🍍 第 4 組：台灣味諧音梗篇" },
+
+            // 第五組：遊戲網路梗篇 (紫色系)
+            { title: "知識下載籤", desc: "課本知識已全數下載至大腦，隨時可存取！", icon: "⬇️", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "經驗滿級籤", desc: "經驗值已滿，準備升級打怪，碾壓考卷！", icon: "🆙", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "回血藥水籤", desc: "喝下魔法藥水，疲勞瞬間一掃而空！", icon: "🧪", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "幸運 Buff 籤", desc: "全屬性加成 Buff 已開啟，今天是你的主場！", icon: "✨", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "學霸眼鏡籤", desc: "裝備「隱形學霸眼鏡」，一眼看透所有題型！", icon: "👓", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "外掛開啟籤", desc: "腦內 CPU 超頻全速運轉，解題猶如開外掛！", icon: "🤖", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "存檔點籤", desc: "你的努力都已存檔，絕對不會白費，穩扎穩打！", icon: "💾", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "暴擊加成籤", desc: "靈光一閃，暴擊發動，難題瞬間被你擊破！", icon: "🥊", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "免死金牌籤", desc: "就算遇到不會的題目，也能幸運閃過扣分危機！", icon: "🏅", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+            { title: "歐洲人籤", desc: "告別非洲酋長，今天你是運氣爆棚的歐洲人！", icon: "👑", themeClass: "border-purple-400 bg-purple-50", tagClass: "bg-purple-500", group: "🎮 第 5 組：遊戲網路梗篇" },
+
+            // 第六組：未來藍圖篇 (青藍色系)
+            { title: "第一志願籤", desc: "大步邁進，理想的學校正在對你招手！", icon: "⛩️", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "展翅高飛籤", desc: "飛向更廣闊的天空，你的前程似錦！", icon: "🚀", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "撥雲見日籤", desc: "辛苦的付出，即將迎來最明亮美好的陽光！", icon: "🌤️", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "繁花盛開籤", desc: "努力終將開花結果，準備享受甜美的果實吧！", icon: "🌸", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "乘風破浪籤", desc: "克服一切困難與挑戰，勇敢迎向光明的未來！", icon: "🏄", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "滿載而歸籤", desc: "帶走豐碩的知識與傲人的成績，大豐收！", icon: "🛒", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "夢想成真籤", desc: "宇宙聽見了你的願望，即將為你實現！", icon: "🕸️", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "無限可能籤", desc: "不要給自己設限，你的未來有著無限可能！", icon: "♾️", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "燦爛星空籤", desc: "閃耀吧！你就是夜空中最獨特、最閃亮的那顆星！", icon: "🔭", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" },
+            { title: "專屬幸運籤", desc: "這份幸運專屬於你，請充滿自信地大步前進吧！", icon: "🎁", themeClass: "border-teal-500 bg-teal-50", tagClass: "bg-teal-600", group: "🚀 第 6 組：未來藍圖篇" }
+        ];
+
+        // 扭蛋顏色清單 (粉彩馬卡龍色系，對應附圖)
+        const pastelColors = [
+            'bg-pink-300', 'bg-blue-300', 'bg-yellow-200', 
+            'bg-green-300', 'bg-purple-300', 'bg-orange-300'
+        ];
+
+        // 分類群組對應邏輯 (對應前文的 6 大主題)
+        function getGroupName(number) {
+            if (number >= 1 && number <= 10) return "🏆 第 1 組：學神附體篇";
+            if (number >= 11 && number <= 20) return "🍀 第 2 組：考場幸運篇";
+            if (number >= 21 && number <= 30) return "💖 第 3 組：暖心充能篇";
+            if (number >= 31 && number <= 40) return "🍍 第 4 組：台灣味諧音梗篇";
+            if (number >= 41 && number <= 50) return "🎮 第 5 組：遊戲網路梗篇";
+            if (number >= 51 && number <= 60) return "🚀 第 6 組：未來藍圖篇";
+            return "神秘隱藏籤";
+        }
+
+        // 新增：取得扭蛋在玻璃圓頂內的隨機位置
+        function getRandomDomePosition() {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 110; // 控制在圓頂內
+            const x = 160 + radius * Math.cos(angle) - 32; // 160是圓心, 32是球半徑
+            const y = 160 + radius * Math.sin(angle) - 32 + 20; // 稍微往下沉
+            return { x, y };
+        }
+
+        // --- 2. 視覺初始化：填滿玻璃圓頂 ---
+        const dome = document.getElementById('dome');
+        const numVisualCapsules = 60; // 畫面上顯示的球數 (視覺效果)
+        
+        for (let i = 0; i < numVisualCapsules; i++) {
+            const cap = document.createElement('div');
+            const colorClass = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+            cap.className = `capsule w-16 h-16 ${colorClass} absolute inner-capsule`;
+            
+            // 隨機散佈在圓形範圍內
+            const pos = getRandomDomePosition();
+            cap.style.left = `${pos.x}px`;
+            cap.style.top = `${pos.y}px`;
+            // 隨機旋轉角度讓反光看起來不一致
+            cap.style.transform = `rotate(${Math.random() * 360}deg)`; 
+            
+            dome.appendChild(cap);
+        }
+
+        // --- 3. 互動邏輯 ---
+        const drawBtn = document.getElementById('draw-btn');
+        const knob = document.getElementById('knob');
+        const dispensedCapsule = document.getElementById('dispensed-capsule');
+        const flap = document.getElementById('flap');
+        const resultModal = document.getElementById('result-modal');
+        
+        // 抓取數位小卡的 DOM 元素
+        const fortuneCard = document.getElementById('fortune-card');
+        const cardNumTag = document.getElementById('card-number-tag');
+        const cardIcon = document.getElementById('card-icon');
+        const cardTitle = document.getElementById('card-title');
+        const cardDesc = document.getElementById('card-desc');
+        const cardInnerBorder = document.getElementById('card-inner-border');
+        
+        const remainCount = document.getElementById('remain-count');
+
+        let isAnimating = false;
+
+        drawBtn.addEventListener('click', () => {
+            if (isAnimating) return;
+            if (capsulePool.length === 0) {
+                alert("扭蛋已經全數抽完囉！活動圓滿結束！");
+                return;
+            }
+
+            isAnimating = true;
+            drawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            drawBtn.innerText = "轉動中...";
+
+            // 隨機從池中抽取一個號碼並移除
+            const randomIndex = Math.floor(Math.random() * capsulePool.length);
+            const drawnNumber = capsulePool.splice(randomIndex, 1)[0];
+            
+            // 更新剩餘數量
+            remainCount.innerText = capsulePool.length;
+
+            // 步驟 A: 旋鈕轉動 & 圓頂內扭蛋滾動 (取代原本的原地小震動)
+            knob.style.transform = 'rotate(720deg)'; // 轉兩圈
+            
+            document.querySelectorAll('.inner-capsule').forEach(cap => {
+                // 開啟 CSS 過渡動畫，讓移動變平滑
+                cap.style.transition = 'all 0.15s ease-out';
+            });
+
+            // 設定計時器，每 150 毫秒改變一次所有球的位置，產生攪拌滾動感
+            const rollInterval = setInterval(() => {
+                document.querySelectorAll('.inner-capsule').forEach(cap => {
+                    const pos = getRandomDomePosition();
+                    cap.style.left = `${pos.x}px`;
+                    cap.style.top = `${pos.y}px`;
+                    cap.style.transform = `rotate(${Math.random() * 360}deg)`;
+                });
+            }, 150);
+
+            // 步驟 B: 旋轉結束後，扭蛋掉落
+            setTimeout(() => {
+                // 停止滾動
+                clearInterval(rollInterval);
+                
+                // 關閉過渡動畫，避免球體跑位
+                document.querySelectorAll('.inner-capsule').forEach(cap => {
+                    cap.style.transition = 'none';
+                });
+
+                // 設定掉落的扭蛋顏色
+                const randomColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+                dispensedCapsule.className = `w-14 h-14 capsule absolute bottom-2 z-20 ${randomColor} animate-drop`;
+                dispensedCapsule.classList.remove('hidden');
+                
+                // 擋板微微打開的動畫
+                flap.style.transform = 'rotateX(30deg)';
+
+                // 步驟 C: 掉落後，彈出滿版開獎視窗
+                setTimeout(() => {
+                    flap.style.transform = 'rotateX(0deg)'; // 擋板蓋回
+                    
+                    // 設定開獎內容 (動態生成數位小卡)
+                    const fortuneData = fortunesData[drawnNumber - 1]; // 陣列索引為 0~59
+                    
+                    // 更新卡片內容
+                    cardNumTag.innerText = `#${drawnNumber.toString().padStart(2, '0')}`;
+                    cardIcon.innerText = fortuneData.icon;
+                    cardTitle.innerText = fortuneData.title;
+                    cardDesc.innerText = fortuneData.desc;
+                    
+                    // 重置並套用卡片主題顏色
+                    fortuneCard.className = `relative w-[90%] max-w-5xl aspect-[2/1] rounded-3xl flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-colors duration-300 overflow-hidden border-[12px] bg-white cursor-default ${fortuneData.themeClass}`;
+                    cardNumTag.className = `absolute top-0 left-0 text-white font-black px-10 py-4 rounded-br-3xl text-5xl shadow-md tracking-wider z-10 ${fortuneData.tagClass}`;
+                    
+                    // 提取邊框顏色應用於內框，還原印刷卡片的雙層邊框感
+                    const borderColor = fortuneData.themeClass.split(' ').find(cls => cls.startsWith('border-'));
+                    cardInnerBorder.className = `absolute inset-4 border-4 rounded-xl pointer-events-none opacity-40 ${borderColor}`;
+                    
+                    // 顯示視窗
+                    resultModal.classList.remove('hidden');
+                    resultModal.classList.add('animate-pop');
+
+                }, 800); // 等待掉落動畫完成
+
+            }, 1000); // 旋鈕轉動時間
+        });
+
+        // --- 4. 關閉視窗與重置 (改為全螢幕點擊關閉) ---
+        window.closeModal = function() {
+            resultModal.classList.add('hidden');
+            resultModal.classList.remove('animate-pop');
+            
+            // 重置機器狀態
+            dispensedCapsule.classList.add('hidden');
+            dispensedCapsule.classList.remove('animate-drop');
+            
+            // 旋鈕無縫歸位
+            knob.style.transition = 'none';
+            knob.style.transform = 'rotate(0deg)';
+            setTimeout(() => { knob.style.transition = 'transform 1s ease'; }, 50);
+
+            // 恢復按鈕
+            drawBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            drawBtn.innerText = "點擊抽取專屬祝福";
+            isAnimating = false;
+        };
+
+    </script>
+</body>
+</html>
